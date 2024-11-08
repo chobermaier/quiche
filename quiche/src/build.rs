@@ -10,14 +10,20 @@ const CMAKE_PARAMS_ANDROID_NDK: &[(&str, &[(&str, &str)])] = &[
 
 // iOS.
 const CMAKE_PARAMS_IOS: &[(&str, &[(&str, &str)])] = &[
-    ("aarch64", &[
-        ("CMAKE_OSX_ARCHITECTURES", "arm64"),
-        ("CMAKE_OSX_SYSROOT", "iphoneos"),
-    ]),
-    ("x86_64", &[
-        ("CMAKE_OSX_ARCHITECTURES", "x86_64"),
-        ("CMAKE_OSX_SYSROOT", "iphonesimulator"),
-    ]),
+    (
+        "aarch64",
+        &[
+            ("CMAKE_OSX_ARCHITECTURES", "arm64"),
+            ("CMAKE_OSX_SYSROOT", "iphoneos"),
+        ],
+    ),
+    (
+        "x86_64",
+        &[
+            ("CMAKE_OSX_ARCHITECTURES", "x86_64"),
+            ("CMAKE_OSX_SYSROOT", "iphonesimulator"),
+        ],
+    ),
 ];
 
 // ARM Linux.
@@ -48,12 +54,13 @@ fn get_boringssl_platform_output_path() -> String {
 
         let subdir = match &opt_env_var[..] {
             "0" => "Debug",
-            "1" | "2" | "3" =>
+            "1" | "2" | "3" => {
                 if deb_info {
                     "RelWithDebInfo"
                 } else {
                     "Release"
-                },
+                }
+            },
             "s" | "z" => "MinSizeRel",
             unknown => panic!("Unknown OPT_LEVEL={} env var.", unknown),
         };
@@ -216,9 +223,13 @@ fn target_dir_path() -> std::path::PathBuf {
 }
 
 fn main() {
-    if cfg!(feature = "boringssl-vendored") &&
-        !cfg!(feature = "boringssl-boring-crate") &&
-        !cfg!(feature = "openssl")
+    let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+    let os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+
+    if cfg!(feature = "boringssl-vendored")
+        && !cfg!(feature = "boringssl-boring-crate")
+        && !cfg!(feature = "openssl")
+        && (arch != "wasm32" || os != "wasi")
     {
         let bssl_dir = std::env::var("QUICHE_BSSL_PATH").unwrap_or_else(|_| {
             let mut cfg = get_boringssl_cmake_config();
@@ -256,9 +267,22 @@ fn main() {
     }
 
     // MacOS: Allow cdylib to link with undefined symbols
-    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
-    if target_os == "macos" {
+    if os == "macos" {
         println!("cargo:rustc-cdylib-link-arg=-Wl,-undefined,dynamic_lookup");
+    }
+
+    if arch == "wasm32" || os == "wasi" {
+        // TODO: figure out how to link the symbols
+        //println!("cargo:rustc-link-arg=--error-unresolved-symbols");
+        //println!("cargo:rustc-link-arg=--rpath,{}", "/home/christian/boringssl");
+
+        let wasm_boringssl = std::env::var("BORINGSSL_PATH").expect("to use quiche for wasm please set environment variable BORINGSSL_PATH to path to boringssl with wasm mods");
+
+        println!("cargo:rustc-link-search={wasm_boringssl}/build/");
+
+        println!("cargo:rustc-link-lib=static=ssl");
+        println!("cargo:rustc-link-lib=static=crypto");
+        println!("cargo:rustc-link-lib=static=decrepit");
     }
 
     #[cfg(feature = "openssl")]
