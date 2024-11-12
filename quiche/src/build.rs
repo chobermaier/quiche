@@ -273,16 +273,22 @@ fn main() {
 
     if arch == "wasm32" || os == "wasi" {
         // TODO: figure out how to link the symbols
-        //println!("cargo:rustc-link-arg=--error-unresolved-symbols");
         //println!("cargo:rustc-link-arg=--rpath,{}", "/home/christian/boringssl");
 
         let wasm_boringssl = std::env::var("BORINGSSL_PATH").expect("to use quiche for wasm please set environment variable BORINGSSL_PATH to path to boringssl with wasm mods");
 
-        println!("cargo:rustc-link-search={wasm_boringssl}/build/");
+        println!("cargo:rustc-link-search={wasm_boringssl}/");
+        //println!("cargo:rustc-link-arg=--export-dynamic");
+        println!("cargo:rustc-link-arg=--Bstatic");
+        println!("cargo:rustc-link-arg=--Bsymbolic");
+
+        println!("cargo:rustc-link-search=all={wasm_boringssl}/build/");
+        println!("cargo:rustc-link-search=all={wasm_boringssl}/build/crypto");
+        println!("cargo:rustc-link-search=all={wasm_boringssl}/build/ssl");
 
         println!("cargo:rustc-link-lib=static=ssl");
         println!("cargo:rustc-link-lib=static=crypto");
-        println!("cargo:rustc-link-lib=static=decrepit");
+        //println!("cargo:rustc-link-lib=static=decrepit");
     }
 
     #[cfg(feature = "openssl")]
