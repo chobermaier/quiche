@@ -79,6 +79,7 @@ impl Algorithm {
     }
 
     fn get_ring_digest(self) -> hkdf::Algorithm {
+        println!("called get_ring_digest: {:?}", self);
         match self {
             Algorithm::AES128_GCM => hkdf::HKDF_SHA256,
             Algorithm::AES256_GCM => hkdf::HKDF_SHA384,
