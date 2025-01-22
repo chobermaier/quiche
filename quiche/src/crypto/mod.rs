@@ -665,10 +665,15 @@ mod tests {
     }
 }
 
-#[cfg(not(feature = "openssl"))]
+#[cfg(all(not(feature = "openssl"), not(feature = "wasmcomponent")))]
 mod boringssl;
-#[cfg(not(feature = "openssl"))]
+#[cfg(all(not(feature = "openssl"), not(feature = "wasmcomponent")))]
 use boringssl::*;
+
+#[cfg(all(not(feature = "openssl"), feature = "wasmcomponent"))]
+mod boringsslwasmcomp;
+#[cfg(all(not(feature = "openssl"), feature = "wasmcomponent"))]
+use boringsslwasmcomp::*;
 
 #[cfg(feature = "openssl")]
 mod openssl_quictls;

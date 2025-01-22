@@ -51,6 +51,9 @@ ffi = ["dep:cdylib-link-lines"]
 # Exposes internal APIs that have no stability guarantees across versions.
 internal = []
 
+# for our cute little WebAssembly Component Model quiche stuff
+wasmcomponent = ["wit-bindgen"]
+
 [package.metadata.docs.rs]
 no-default-features = true
 features = ["boringssl-boring-crate", "qlog"]
@@ -76,6 +79,7 @@ intrusive-collections = "0.9.5"
 qlog = { version = "0.13", path = "../qlog", optional = true }
 sfv = { version = "0.9", optional = true }
 smallvec = { version = "1.10", features = ["serde", "union"] }
+wit-bindgen = { version = "0.36", optional = true }
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["wincrypt", "ws2def", "ws2ipdef", "ws2tcpip"] }
