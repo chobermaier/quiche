@@ -1,3 +1,9 @@
+#[cfg(feature = "wasmcomponent")]
+wit_bindgen::generate!({
+    path: "/home/christian/matrl/componentsv2/wit",
+    world: "faketls-consumer",
+});
+
 use super::*;
 
 use std::mem::MaybeUninit;
@@ -45,6 +51,27 @@ impl Open {
         let max_out_len = out_len;
 
         let nonce = make_nonce(&self.packet.nonce, counter);
+
+        #[cfg(feature = "wasmcomponent")]
+        {
+            // calc length of data, that we don't need to calculate the return value
+            // and make an array of that size to copy that instead of a bunch of arrays and unused variables
+            let mylen_ctx = (usize::BITS + 580 * 8 + 64 + 8)/8;
+            let mylen_out = (usize::BITS / 8) + buf.len() as u32;
+            let mylen_out_len = usize::BITS / 8;
+            let mylen_max_out_len = usize::BITS / 8;
+            let mylen_nonce = (usize::BITS / 8) + nonce.len() as u32;
+            let mylen_nonce_len = usize::BITS / 8;
+            let mylen_inp = usize::BITS / 8; // just calc an additional pointers since we have the whole `buf` already
+            // let mylen_inp_len = usize::BITS / 8;
+            let mylen_ad = (usize::BITS / 8) + ad.len() as u32;
+            let mylen_ad_len = usize::BITS / 8;
+
+            let mylen = mylen_ctx + mylen_out + mylen_out_len + mylen_max_out_len + mylen_nonce + mylen_nonce_len + mylen_inp + mylen_ad + mylen_ad_len;
+
+            let data: Vec<u8> = vec![0; mylen as usize];
+            let _ = fake_aead_open(&data, buf.len() as u32);
+        }
 
         let rc = unsafe {
             EVP_AEAD_CTX_open(
@@ -98,6 +125,33 @@ impl Seal {
         }
 
         let nonce = make_nonce(&self.packet.nonce, counter);
+
+        #[cfg(feature = "wasmcomponent")]
+        {
+            // calc length of data, that we don't need to calculate the return value
+            // and make an array of that size to copy that instead of a bunch of arrays and unused variables
+            let mylen_ctx = (usize::BITS + 580 * 8 + 64 + 8)/8;
+            let mylen_out = (usize::BITS / 8) + buf.len() as u32;
+            let mylen_out_tag = usize::BITS / 8; // just pointer, because we have `buf` already
+            let mylen_out_tag_len = usize::BITS / 8;
+            let mylen_max_out_tag_len = usize::BITS / 8;
+            let mylen_nonce = (usize::BITS / 8) + nonce.len() as u32;
+            let mylen_nonce_len = usize::BITS / 8;
+            let mylen_inp = usize::BITS / 8; // just pointer, because we have `buf` already
+            // let mylen_inp_len = usize::BITS / 8;
+            let mylen_extra_in_ptr = (usize::BITS / 8) + match extra_in {
+                Some(p) => p.len() as u32,
+                None => 0,  
+            };
+            // let mylen_extra_in_len = usize::BITS / 8;
+            let mylen_ad = (usize::BITS / 8) + ad.len() as u32;
+            let mylen_ad_len = usize::BITS / 8;
+
+            let mylen = mylen_ctx + mylen_out + mylen_out_tag + mylen_out_tag_len + mylen_max_out_tag_len + mylen_nonce + mylen_nonce_len + mylen_inp + mylen_extra_in_ptr + mylen_ad + mylen_ad_len;
+
+            let data: Vec<u8> = vec![0; mylen as usize];
+            let _ = fake_aead_seal(&data, in_len as u32, extra_in_len as u32);
+        }
 
         let rc = unsafe {
             EVP_AEAD_CTX_seal_scatter(
