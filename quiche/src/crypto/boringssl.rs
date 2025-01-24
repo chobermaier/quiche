@@ -10,6 +10,14 @@ use std::mem::MaybeUninit;
 
 use libc::c_int;
 
+#[cfg(feature = "wasmcomponent")]
+use lazy_static::lazy_static;
+
+#[cfg(feature = "wasmcomponent")]
+lazy_static! {
+    static ref BIG_DATA_BLOCK: Vec<u8> = vec![0; 65536];
+}
+
 // NOTE: This structure is copied from <openssl/aead.h> in order to be able to
 // statically allocate it. While it is not often modified upstream, it needs to
 // be kept in sync.
@@ -56,8 +64,11 @@ impl Open {
         {
             let in_len = buf.len();
             let total_in_len = nonce.len() + in_len + ad.len();
-            let data: Vec<u8> = vec![0; total_in_len as usize];
-            let _ = cm::wasmquiche::faketls::fake_aead_open(&data, in_len as u32);
+            // let data: Vec<u8> = vec![0; total_in_len as usize];
+            let _ = cm::wasmquiche::faketls::fake_aead_open(
+                &BIG_DATA_BLOCK[..total_in_len as usize],
+                in_len as u32,
+            );
         }
 
         let rc = unsafe {
@@ -116,8 +127,10 @@ impl Seal {
         #[cfg(feature = "wasmcomponent")]
         {
             let total_in_len = nonce.len() + in_len + extra_in_len + ad.len();
-            let data: Vec<u8> = vec![0; total_in_len as usize];
-            let _ = cm::wasmquiche::faketls::fake_aead_seal(&data, in_len as u32);
+            let _ = cm::wasmquiche::faketls::fake_aead_seal(
+                &BIG_DATA_BLOCK[..total_in_len as usize],
+                in_len as u32,
+            );
         }
 
         let rc = unsafe {
