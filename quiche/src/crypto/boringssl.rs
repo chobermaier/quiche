@@ -54,23 +54,10 @@ impl Open {
 
         #[cfg(feature = "wasmcomponent")]
         {
-            // calc length of data, that we don't need to calculate the return value
-            // and make an array of that size to copy that instead of a bunch of arrays and unused variables
-            let mylen_ctx = (usize::BITS + 580 * 8 + 64 + 8)/8;
-            let mylen_out = (usize::BITS / 8) + buf.len() as u32;
-            let mylen_out_len = usize::BITS / 8;
-            let mylen_max_out_len = usize::BITS / 8;
-            let mylen_nonce = (usize::BITS / 8) + nonce.len() as u32;
-            let mylen_nonce_len = usize::BITS / 8;
-            let mylen_inp = usize::BITS / 8; // just calc an additional pointers since we have the whole `buf` already
-            // let mylen_inp_len = usize::BITS / 8;
-            let mylen_ad = (usize::BITS / 8) + ad.len() as u32;
-            let mylen_ad_len = usize::BITS / 8;
-
-            let mylen = mylen_ctx + mylen_out + mylen_out_len + mylen_max_out_len + mylen_nonce + mylen_nonce_len + mylen_inp + mylen_ad + mylen_ad_len;
-
-            let data: Vec<u8> = vec![0; mylen as usize];
-            let _ = fake_aead_open(&data, buf.len() as u32);
+            let in_len = buf.len();
+            let total_in_len = nonce.len() + in_len + ad.len();
+            let data: Vec<u8> = vec![0; total_in_len as usize];
+            let _ = cm::wasmquiche::faketls::fake_aead_open(&data, in_len as u32);
         }
 
         let rc = unsafe {
@@ -128,29 +115,9 @@ impl Seal {
 
         #[cfg(feature = "wasmcomponent")]
         {
-            // calc length of data, that we don't need to calculate the return value
-            // and make an array of that size to copy that instead of a bunch of arrays and unused variables
-            let mylen_ctx = (usize::BITS + 580 * 8 + 64 + 8)/8;
-            let mylen_out = (usize::BITS / 8) + buf.len() as u32;
-            let mylen_out_tag = usize::BITS / 8; // just pointer, because we have `buf` already
-            let mylen_out_tag_len = usize::BITS / 8;
-            let mylen_max_out_tag_len = usize::BITS / 8;
-            let mylen_nonce = (usize::BITS / 8) + nonce.len() as u32;
-            let mylen_nonce_len = usize::BITS / 8;
-            let mylen_inp = usize::BITS / 8; // just pointer, because we have `buf` already
-            // let mylen_inp_len = usize::BITS / 8;
-            let mylen_extra_in_ptr = (usize::BITS / 8) + match extra_in {
-                Some(p) => p.len() as u32,
-                None => 0,  
-            };
-            // let mylen_extra_in_len = usize::BITS / 8;
-            let mylen_ad = (usize::BITS / 8) + ad.len() as u32;
-            let mylen_ad_len = usize::BITS / 8;
-
-            let mylen = mylen_ctx + mylen_out + mylen_out_tag + mylen_out_tag_len + mylen_max_out_tag_len + mylen_nonce + mylen_nonce_len + mylen_inp + mylen_extra_in_ptr + mylen_ad + mylen_ad_len;
-
-            let data: Vec<u8> = vec![0; mylen as usize];
-            let _ = fake_aead_seal(&data, in_len as u32, extra_in_len as u32);
+            let total_in_len = nonce.len() + in_len + extra_in_len + ad.len();
+            let data: Vec<u8> = vec![0; total_in_len as usize];
+            let _ = cm::wasmquiche::faketls::fake_aead_seal(&data, in_len as u32);
         }
 
         let rc = unsafe {
